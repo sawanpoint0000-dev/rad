@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ID Generator</title>
+<style>
+body{
+background:#eef2f5;
+font-family:Arial;
+display:flex;
+justify-content:center;
+padding:20px;
+}
+.container{
+background:#fff;
+width:420px;
+padding:20px;
+border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,.2);
+}
+h2{text-align:center}
+input,textarea,button{
+width:100%;
+padding:10px;
+margin-top:10px;
+font-size:14px;
+}
+.row{
+display:flex;
+gap:6px;
+}
+button{
+background:#007bff;
+color:#fff;
+border:none;
+cursor:pointer;
+border-radius:6px;
+}
+button.copied{
+background:#28a745;
+}
+textarea{
+height:90px;
+resize:none;
+}
+input[readonly]{
+background:#f5f5f5;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>ID Generator</h2>
+<input type="email" id="email" placeholder="Enter Email">
+<input type="text" id="mobile" placeholder="Enter Mobile Number">
+<button onclick="generate()">Generate</button>
+<div class="row">
+<input id="pass" readonly placeholder="Password">
+<button onclick="copyText(this,'pass')">Copy</button>
+</div>
+<div class="row">
+<input id="userid" readonly placeholder="User ID">
+<button onclick="copyText(this,'userid')">Copy</button>
+</div>
+<div class="row">
+<input id="phone" readonly placeholder="Mobile">
+<button onclick="copyText(this,'phone')">Copy</button>
+</div>
+<div class="row">
+<input id="mailout" readonly placeholder="Email">
+<button onclick="copyText(this,'mailout')">Copy</button>
+</div>
+<button onclick="copyAll(this)">ALL COPY</button>
+<textarea id="final" readonly placeholder="Final Output"></textarea>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+const firebaseConfig = {
+    apiKey: "AIzaSyCIqyRKXYTXNC913jDbrrC2-fk_MMRx8R0",
+    authDomain: "irctcid-e0eaa.firebaseapp.com",
+    projectId: "irctcid-e0eaa",
+    storageBucket: "irctcid-e0eaa.firebasestorage.app",
+    messagingSenderId: "422207910338",
+    appId: "1:422207910338:web:34cbb26e92c3906ffbe65b",
+    databaseURL: "https://irctcid-e0eaa-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+let browserId = localStorage.getItem("browserId");
+if(!browserId){
+    browserId = "browser_" + Math.random().toString(36).slice(2,10);
+    localStorage.setItem("browserId", browserId);
+}
+function generatePassword(){
+    const lower="abcdefghijklmnopqrstuvwxyz";
+    const upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const num="0123456789";
+    const sp="@#$%!&*";
+    const all=lower+upper+num+sp;
+    let p = "";
+    p += lower[Math.floor(Math.random()*lower.length)];
+    p += upper[Math.floor(Math.random()*upper.length)];
+    p += num[Math.floor(Math.random()*num.length)];
+    p += sp[Math.floor(Math.random()*sp.length)];
+    for(let i = p.length; i < 12; i++){
+        p += all[Math.floor(Math.random()*all.length)];
+    }
+    return p.split("").sort(()=>Math.random()-0.5).join("");
+}
+window.generate = async function(){
+    const email = document.getElementById("email").value.trim();
+    const mobile = document.getElementById("mobile").value.trim();
+    
+    if(!email || !mobile){
+        alert("Email & Mobile required");
+        return;
+    }
+    const name = email.split("@")[0].replace(/[^a-zA-Z]/g,"").toUpperCase();
+    const digits = Math.floor(10 + Math.random()*90);
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const userId = name + digits + 
+                   letters[Math.floor(Math.random()*26)] +
+                   letters[Math.floor(Math.random()*26)];
+    const password = generatePassword();
+    document.getElementById("pass").value = password;
+    document.getElementById("userid").value = userId;
+    document.getElementById("phone").value = mobile;
+    document.getElementById("mailout").value = email;
+    document.getElementById("final").value = `${userId}\n${password}\n${mobile}\n${email}`;
+    setTimeout(saveToFirebase, 800);
+};
+async function saveToFirebase(){
+    const userid = document.getElementById("userid").value;
+    if(!userid) return;
+    const countRef = ref(db, "users/" + browserId + "/count");
+    const snapshot = await get(countRef);
+    let count = snapshot.exists() ? snapshot.val() + 1 : 1;
+    await set(ref(db, "users/" + browserId + "/data/" + count), {
+        userid: document.getElementById("userid").value,
+        password: document.getElementById("pass").value,
+        mobile: document.getElementById("phone").value,
+        email: document.getElementById("mailout").value,
+        time: Date.now()
+    });
+    await set(countRef, count);
+}
+window.copyText = function(btn, id){
+    navigator.clipboard.writeText(document.getElementById(id).value);
+    btn.classList.add("copied");
+    setTimeout(() => btn.classList.remove("copied"), 2000);
+}
+window.copyAll = function(btn){
+    navigator.clipboard.writeText(document.getElementById("final").value);
+    btn.classList.add("copied");
+    setTimeout(() => btn.classList.remove("copied"), 2000);
+}
+</script>
+</body>
+</html>
